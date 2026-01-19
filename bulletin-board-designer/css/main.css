@@ -246,6 +246,16 @@ body::before {
 
 /* Print Styles */
 @media print {
+    @page {
+        margin: 0;
+        size: auto;
+    }
+    
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
     .header,
     .controls-panel,
     .grid-header,
@@ -264,5 +274,6 @@ body::before {
     .tile-card {
         page-break-inside: avoid;
         break-inside: avoid;
+        margin: 0 !important;
     }
 }

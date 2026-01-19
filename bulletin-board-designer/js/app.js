@@ -265,9 +265,6 @@ class BulletinBoardDesigner {
             this.state.originalImage = image;
             this.imageProcessor.setImage(image);
 
-            // Update preview
-            this.updatePreview();
-
             // Update info badges
             this.elements.imageDimensions.textContent = Utils.formatDimensions(
                 image.naturalWidth,
@@ -278,8 +275,14 @@ class BulletinBoardDesigner {
             // Update grid info
             this.updateGridInfo();
 
-            // Show editor section
+            // Show editor section FIRST so container has dimensions
             this.showSection('editor');
+
+            // Update preview after section is visible
+            // Use requestAnimationFrame to ensure layout is calculated
+            requestAnimationFrame(() => {
+                this.updatePreview();
+            });
 
         } catch (error) {
             console.error('Error loading image:', error);
@@ -295,18 +298,27 @@ class BulletinBoardDesigner {
         const ctx = canvas.getContext('2d');
 
         const img = this.state.originalImage;
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        
+        // Get container dimensions, with fallbacks if still 0
+        let containerWidth = container.clientWidth;
+        let containerHeight = container.clientHeight;
+        
+        // Fallback dimensions if container hasn't rendered yet
+        if (containerWidth === 0 || containerHeight === 0) {
+            containerWidth = 600;
+            containerHeight = 400;
+        }
 
-        // Calculate scale to fit container
+        // Calculate scale to fit container while maintaining aspect ratio
         const scale = Math.min(
             containerWidth / img.naturalWidth,
             containerHeight / img.naturalHeight,
             1 // Don't upscale for preview
         );
 
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
+        // Ensure minimum dimensions
+        canvas.width = Math.max(Math.round(img.naturalWidth * scale), 100);
+        canvas.height = Math.max(Math.round(img.naturalHeight * scale), 100);
 
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
@@ -426,8 +438,16 @@ class BulletinBoardDesigner {
                 `${config.cols} × ${config.rows} = ${config.totalPages} pages`;
             this.elements.overlapGuide.textContent = `${this.state.overlap}mm`;
 
-            // Set up exporter
-            this.printExporter.setTiles(this.gridSplitter.getTiles(), config);
+            // Get original image as data URL for assembly guide
+            const origCanvas = document.createElement('canvas');
+            origCanvas.width = this.state.originalImage.naturalWidth;
+            origCanvas.height = this.state.originalImage.naturalHeight;
+            const origCtx = origCanvas.getContext('2d');
+            origCtx.drawImage(this.state.originalImage, 0, 0);
+            const originalImageDataUrl = origCanvas.toDataURL('image/jpeg', 0.9);
+
+            // Set up exporter with original image for assembly guide
+            this.printExporter.setTiles(this.gridSplitter.getTiles(), config, originalImageDataUrl);
 
             this.hideProgress();
             this.showSection('grid');
