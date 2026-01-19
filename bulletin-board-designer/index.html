@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletin Board Designer | RA Tools</title>
+    <meta name="description" content="Create stunning bulletin boards by upscaling images and splitting them into printable A4 pages.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-title">Bulletin Board Designer</span>
+                        <span class="logo-subtitle">RA Tools Suite</span>
+                    </div>
+                </div>
+                <nav class="header-nav">
+                    <button class="nav-btn" id="helpBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Help
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section" id="uploadSection">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <h2 class="upload-title">Drop your image here</h2>
+                        <p class="upload-subtitle">or click to browse</p>
+                        <p class="upload-formats">Supports JPG, PNG, WebP, BMP</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+            </section>
+
+            <!-- Editor Section (Hidden by default) -->
+            <section class="editor-section hidden" id="editorSection">
+                <div class="editor-layout">
+                    <!-- Preview Panel -->
+                    <div class="preview-panel">
+                        <div class="panel-header">
+                            <h3>Original Image</h3>
+                            <div class="image-info" id="imageInfo">
+                                <span class="info-badge" id="imageDimensions">--</span>
+                                <span class="info-badge" id="imageSize">--</span>
+                            </div>
+                        </div>
+                        <div class="preview-container" id="previewContainer">
+                            <canvas id="previewCanvas"></canvas>
+                        </div>
+                        <button class="change-image-btn" id="changeImageBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Change Image
+                        </button>
+                    </div>
+
+                    <!-- Controls Panel -->
+                    <div class="controls-panel">
+                        <div class="panel-header">
+                            <h3>Configuration</h3>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>Target Size</span>
+                                <span class="control-hint">Final bulletin board dimensions</span>
+                            </label>
+                            <div class="size-inputs">
+                                <div class="input-group">
+                                    <input type="number" id="targetWidth" value="60" min="20" max="200">
+                                    <span class="input-unit">cm</span>
+                                </div>
+                                <span class="size-separator">×</span>
+                                <div class="input-group">
+                                    <input type="number" id="targetHeight" value="40" min="20" max="200">
+                                    <span class="input-unit">cm</span>
+                                </div>
+                            </div>
+                            <div class="preset-sizes">
+                                <button class="preset-btn" data-width="60" data-height="40">Small</button>
+                                <button class="preset-btn active" data-width="90" data-height="60">Medium</button>
+                                <button class="preset-btn" data-width="120" data-height="80">Large</button>
+                                <button class="preset-btn" data-width="150" data-height="100">X-Large</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>Print Quality (DPI)</span>
+                                <span class="control-hint">Higher = sharper prints, larger files</span>
+                            </label>
+                            <div class="dpi-options">
+                                <button class="dpi-btn" data-dpi="150">150 DPI<span>Draft</span></button>
+                                <button class="dpi-btn active" data-dpi="300">300 DPI<span>Standard</span></button>
+                                <button class="dpi-btn" data-dpi="600">600 DPI<span>High Quality</span></button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>A4 Orientation</span>
+                            </label>
+                            <div class="orientation-options">
+                                <button class="orientation-btn active" data-orientation="portrait">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="5" y="2" width="14" height="20" rx="2"/>
+                                    </svg>
+                                    Portrait
+                                </button>
+                                <button class="orientation-btn" data-orientation="landscape">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                                    </svg>
+                                    Landscape
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>Overlap</span>
+                                <span class="control-hint">For seamless assembly</span>
+                            </label>
+                            <div class="overlap-slider">
+                                <input type="range" id="overlapRange" min="0" max="20" value="10">
+                                <span class="overlap-value" id="overlapValue">10mm</span>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">
+                                <span>Upscaling Algorithm</span>
+                            </label>
+                            <select id="algorithmSelect" class="control-select">
+                                <option value="lanczos">Lanczos (Best Quality)</option>
+                                <option value="bicubic">Bicubic (Balanced)</option>
+                                <option value="bilinear">Bilinear (Fast)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid-info" id="gridInfo">
+                            <div class="grid-stat">
+                                <span class="stat-value" id="gridCols">-</span>
+                                <span class="stat-label">Columns</span>
+                            </div>
+                            <div class="grid-stat">
+                                <span class="stat-value" id="gridRows">-</span>
+                                <span class="stat-label">Rows</span>
+                            </div>
+                            <div class="grid-stat">
+                                <span class="stat-value" id="totalPages">-</span>
+                                <span class="stat-label">Pages</span>
+                            </div>
+                            <div class="grid-stat">
+                                <span class="stat-value" id="upscaleFactor">-</span>
+                                <span class="stat-label">Upscale</span>
+                            </div>
+                        </div>
+
+                        <button class="generate-btn" id="generateBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="3" y1="15" x2="21" y2="15"/>
+                                <line x1="9" y1="3" x2="9" y2="21"/>
+                                <line x1="15" y1="3" x2="15" y2="21"/>
+                            </svg>
+                            Generate Grid Preview
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grid Preview Section (Hidden by default) -->
+            <section class="grid-section hidden" id="gridSection">
+                <div class="grid-header">
+                    <div class="grid-header-left">
+                        <button class="back-btn" id="backToEditor">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Back to Editor
+                        </button>
+                        <h3>Grid Preview</h3>
+                        <span class="grid-summary" id="gridSummary">--</span>
+                    </div>
+                    <div class="grid-header-right">
+                        <button class="export-btn secondary" id="exportPngBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download PNGs (ZIP)
+                        </button>
+                        <button class="export-btn primary" id="exportPdfBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid-preview-container" id="gridPreviewContainer">
+                    <div class="grid-wrapper" id="gridWrapper">
+                        <!-- Tiles will be rendered here -->
+                    </div>
+                </div>
+
+                <div class="assembly-guide">
+                    <h4>Assembly Guide</h4>
+                    <p>Print all pages and arrange them according to the numbered grid. Overlap edges by <span id="overlapGuide">10mm</span> for seamless joining.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Progress Modal -->
+        <div class="modal hidden" id="progressModal">
+            <div class="modal-content progress-modal">
+                <div class="progress-spinner"></div>
+                <h3 id="progressTitle">Processing...</h3>
+                <p id="progressText">Please wait while we process your image</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div class="modal hidden" id="helpModal">
+            <div class="modal-content help-modal">
+                <button class="modal-close" id="closeHelpModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                <h2>How to Use</h2>
+                <div class="help-steps">
+                    <div class="help-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Upload Your Image</h4>
+                            <p>Drag and drop or click to upload your bulletin board design.</p>
+                        </div>
+                    </div>
+                    <div class="help-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Configure Settings</h4>
+                            <p>Set your target size, print quality, and overlap preferences.</p>
+                        </div>
+                    </div>
+                    <div class="help-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Generate & Preview</h4>
+                            <p>Click generate to see how your image will be split into A4 pages.</p>
+                        </div>
+                    </div>
+                    <div class="help-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Export & Print</h4>
+                            <p>Download as PDF or individual PNGs and print on any A4 printer.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/imageProcessor.js"></script>
+    <script src="js/gridSplitter.js"></script>
+    <script src="js/printExporter.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
