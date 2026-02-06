@@ -144,21 +144,68 @@ function canvasToBlob(canvas, type = 'image/png', quality = 0.92) {
 
 // Download blob as file - uses data URL for file:// protocol compatibility
 function downloadBlob(blob, filename) {
-    // Convert blob to data URL for reliable downloads
-    const reader = new FileReader();
-    reader.onload = function() {
-        const dataUrl = reader.result;
-        forceDownload(dataUrl, filename);
-    };
-    reader.readAsDataURL(blob);
+    // Try blob URL first (more reliable for preserving extension)
+    try {
+        const url = URL.createObjectURL(blob);
+        forceDownloadWithUrl(url, filename, () => {
+            URL.revokeObjectURL(url);
+        });
+    } catch (e) {
+        // Fallback to data URL
+        const reader = new FileReader();
+        reader.onload = function() {
+            const dataUrl = reader.result;
+            forceDownload(dataUrl, filename);
+        };
+        reader.readAsDataURL(blob);
+    }
+}
+
+// Force download using blob URL (preferred method)
+function forceDownloadWithUrl(url, filename, cleanup) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    
+    // For Safari - ensure download attribute works  
+    a.setAttribute('download', filename);
+    a.type = getMimeType(filename);
+    
+    document.body.appendChild(a);
+    
+    setTimeout(() => {
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            if (cleanup) cleanup();
+        }, 200);
+    }, 0);
 }
 
 // Force download with proper filename - works with file:// protocol
 function forceDownload(dataUrl, filename) {
+    // For file:// protocol, try to use msSaveBlob if available (IE/Edge)
+    if (navigator.msSaveBlob) {
+        const byteString = atob(dataUrl.split(',')[1]);
+        const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        navigator.msSaveBlob(blob, filename);
+        return;
+    }
+    
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = filename;
     a.style.display = 'none';
+    
+    // Explicitly set download attribute with full filename including extension
+    a.setAttribute('download', filename);
     
     // For Safari and older browsers
     a.setAttribute('target', '_blank');
@@ -170,8 +217,21 @@ function forceDownload(dataUrl, filename) {
         a.click();
         setTimeout(() => {
             document.body.removeChild(a);
-        }, 100);
+        }, 200);
     }, 0);
+}
+
+// Get MIME type from filename
+function getMimeType(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const mimeTypes = {
+        'pdf': 'application/pdf',
+        'zip': 'application/zip',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
 }
 
 // Generate unique ID
@@ -215,6 +275,8 @@ window.Utils = {
     canvasToBlob,
     downloadBlob,
     forceDownload,
+    forceDownloadWithUrl,
+    getMimeType,
     generateId,
     checkBrowserSupport
 };

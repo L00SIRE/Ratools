@@ -19,7 +19,8 @@ class BulletinBoardDesigner {
             dpi: 300,
             orientation: 'portrait',
             overlap: 10,       // mm
-            algorithm: 'lanczos'
+            algorithm: 'lanczos',
+            bgColor: '#ffffff' // Background color for tiles
         };
 
         // DOM Elements
@@ -60,6 +61,8 @@ class BulletinBoardDesigner {
             overlapRange: document.getElementById('overlapRange'),
             overlapValue: document.getElementById('overlapValue'),
             algorithmSelect: document.getElementById('algorithmSelect'),
+            bgColorInput: document.getElementById('bgColor'),
+            colorBtns: document.querySelectorAll('.color-btn'),
             
             // Grid info
             gridCols: document.getElementById('gridCols'),
@@ -188,6 +191,22 @@ class BulletinBoardDesigner {
             this.state.overlap = parseInt(e.target.value);
             this.elements.overlapValue.textContent = `${this.state.overlap}mm`;
             this.updateGridInfo();
+        });
+
+        // Background color picker
+        this.elements.bgColorInput.addEventListener('input', (e) => {
+            this.state.bgColor = e.target.value;
+            this.elements.colorBtns.forEach(b => b.classList.remove('active'));
+        });
+
+        // Color preset buttons
+        this.elements.colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.state.bgColor = btn.dataset.color;
+                this.elements.bgColorInput.value = btn.dataset.color;
+                this.elements.colorBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
         });
 
         // Algorithm select
@@ -418,7 +437,8 @@ class BulletinBoardDesigner {
             // Step 2: Split into tiles
             const config = {
                 ...this.currentGridConfig,
-                addCropMarks: true
+                addCropMarks: true,
+                bgColor: this.state.bgColor
             };
 
             await this.gridSplitter.splitIntoTiles(

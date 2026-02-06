@@ -63,8 +63,8 @@ class GridSplitter {
                 tileCanvas.height = a4HeightPx;
                 const tileCtx = tileCanvas.getContext('2d');
 
-                // Fill with white background (for printing)
-                tileCtx.fillStyle = '#ffffff';
+                // Fill with background color (matches bulletin board)
+                tileCtx.fillStyle = config.bgColor || '#ffffff';
                 tileCtx.fillRect(0, 0, a4WidthPx, a4HeightPx);
 
                 // Enable high-quality rendering
@@ -78,13 +78,8 @@ class GridSplitter {
                     0, 0, a4WidthPx, a4HeightPx
                 );
 
-                // Add crop marks if enabled
-                if (config.addCropMarks) {
-                    this.addCropMarks(tileCtx, a4WidthPx, a4HeightPx, overlapPx);
-                }
-
-                // Store tile with metadata
-                this.tiles.push({
+                // Store tile metadata first
+                const tileData = {
                     canvas: tileCanvas,
                     row,
                     col,
@@ -95,7 +90,15 @@ class GridSplitter {
                     hasTopOverlap: row > 0,
                     hasRightOverlap: col < cols - 1,
                     hasBottomOverlap: row < rows - 1
-                });
+                };
+
+                // Add enhanced overlap guides if enabled
+                if (config.addCropMarks) {
+                    this.addOverlapGuides(tileCtx, a4WidthPx, a4HeightPx, overlapPx, tileData);
+                }
+
+                // Store tile with metadata
+                this.tiles.push(tileData);
 
                 tileIndex++;
 
@@ -112,45 +115,205 @@ class GridSplitter {
     }
 
     /**
-     * Add crop marks to a tile context
+     * Add enhanced overlap guides for easier cutting and assembly
+     * Uses professional print industry standards:
+     * - RIGHT tiles overlap LEFT tiles (right edge of left tile is glue zone)
+     * - BOTTOM tiles overlap TOP tiles (bottom edge of top tile is glue zone)
+     * - Clear distinction between CUT zones and GLUE zones
+     * 
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Tile width in pixels
+     * @param {number} height - Tile height in pixels
+     * @param {number} overlapPx - Overlap size in pixels
+     * @param {Object} tile - Tile metadata with overlap info
      */
-    addCropMarks(ctx, width, height, overlapPx) {
-        const markLength = 20;
-        const markOffset = 5;
-        
+    addOverlapGuides(ctx, width, height, overlapPx, tile) {
+        if (overlapPx <= 0) return;
+
         ctx.save();
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([5, 5]);
 
-        // Draw overlap guides
-        if (overlapPx > 0) {
-            // Top overlap line
-            ctx.beginPath();
-            ctx.moveTo(0, overlapPx);
-            ctx.lineTo(width, overlapPx);
-            ctx.stroke();
+        // Professional overlap algorithm:
+        // - Tiles on LEFT and TOP edges: their RIGHT/BOTTOM edges are GLUE zones (will be covered)
+        // - Tiles on RIGHT and BOTTOM edges: their LEFT/TOP edges need to be CUT (they go on top)
+        
+        // 1. Draw gradient glue zones (only on edges that will be covered)
+        this.drawGlueZones(ctx, width, height, overlapPx, tile);
 
-            // Bottom overlap line
-            ctx.beginPath();
-            ctx.moveTo(0, height - overlapPx);
-            ctx.lineTo(width, height - overlapPx);
-            ctx.stroke();
+        // 2. Draw cut lines (only on edges that need trimming)
+        this.drawCutLines(ctx, width, height, overlapPx, tile);
 
-            // Left overlap line
-            ctx.beginPath();
-            ctx.moveTo(overlapPx, 0);
-            ctx.lineTo(overlapPx, height);
-            ctx.stroke();
+        // 3. Draw cross-hair registration marks for precise alignment
+        this.drawRegistrationMarks(ctx, width, height, overlapPx, tile);
 
-            // Right overlap line
-            ctx.beginPath();
-            ctx.moveTo(width - overlapPx, 0);
-            ctx.lineTo(width - overlapPx, height);
-            ctx.stroke();
+        // 4. Draw numbered alignment points
+        this.drawAlignmentPoints(ctx, width, height, overlapPx, tile);
+
+        // 5. Draw corner crop marks
+        this.drawCornerMarks(ctx, width, height);
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw gradient glue zones - ONLY on edges that will be COVERED after assembly
+     * Right edge = glue zone (right neighbor covers this)
+     * Bottom edge = glue zone (bottom neighbor covers this)
+     * 
+     * Left/Top edges: NO MARKINGS - these stay visible after assembly
+     */
+    drawGlueZones(ctx, width, height, overlapPx, tile) {
+        // RIGHT edge is a glue zone - will be covered by tile to the right
+        if (tile.hasRightOverlap) {
+            // Subtle gradient (will be hidden)
+            const gradientRight = ctx.createLinearGradient(width - overlapPx, 0, width, 0);
+            gradientRight.addColorStop(0, 'rgba(65, 105, 225, 0.0)');
+            gradientRight.addColorStop(0.3, 'rgba(65, 105, 225, 0.08)');
+            gradientRight.addColorStop(1, 'rgba(65, 105, 225, 0.18)');
+            ctx.fillStyle = gradientRight;
+            ctx.fillRect(width - overlapPx, 0, overlapPx, height);
+            
+            // "GLUE" label (will be hidden when assembled)
+            ctx.save();
+            ctx.translate(width - overlapPx / 2, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillStyle = 'rgba(30, 60, 150, 0.5)';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('▼ GLUE HERE ▼', 0, 4);
+            ctx.restore();
         }
 
-        // Corner crop marks
+        // BOTTOM edge is a glue zone - will be covered by tile below
+        if (tile.hasBottomOverlap) {
+            const gradientBottom = ctx.createLinearGradient(0, height - overlapPx, 0, height);
+            gradientBottom.addColorStop(0, 'rgba(65, 105, 225, 0.0)');
+            gradientBottom.addColorStop(0.3, 'rgba(65, 105, 225, 0.08)');
+            gradientBottom.addColorStop(1, 'rgba(65, 105, 225, 0.18)');
+            ctx.fillStyle = gradientBottom;
+            ctx.fillRect(0, height - overlapPx, width, overlapPx);
+            
+            // "GLUE" label (will be hidden when assembled)
+            ctx.fillStyle = 'rgba(30, 60, 150, 0.5)';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('▼ GLUE HERE ▼', width / 2, height - overlapPx / 2 + 4);
+        }
+
+        // LEFT and TOP edges: NO MARKINGS - these go ON TOP and stay visible!
+    }
+
+    /**
+     * No cut lines needed - tiles just overlap without cutting
+     * All guides are on edges that get covered (right/bottom)
+     */
+    drawCutLines(ctx, width, height, overlapPx, tile) {
+        // No cut lines - the overlap system doesn't require cutting
+        // Left/top edges go ON TOP and must stay clean
+        // Right/bottom edges get covered so their guides are hidden
+    }
+
+
+
+    /**
+     * Draw professional cross-hair registration marks for precise alignment
+     * ONLY on edges that get COVERED (right/bottom) - not on visible edges
+     */
+    drawRegistrationMarks(ctx, width, height, overlapPx, tile) {
+        const markSize = 12;
+        
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+
+        // Helper function to draw cross-hair
+        const drawCrossHair = (x, y) => {
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(x - markSize, y);
+            ctx.lineTo(x + markSize, y);
+            ctx.stroke();
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(x, y - markSize);
+            ctx.lineTo(x, y + markSize);
+            ctx.stroke();
+            
+            // Center circle
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.stroke();
+        };
+
+        // Registration marks ONLY on RIGHT edge (will be covered by next tile)
+        if (tile.hasRightOverlap) {
+            drawCrossHair(width - overlapPx / 2, overlapPx + 30);
+            drawCrossHair(width - overlapPx / 2, height / 2);
+            drawCrossHair(width - overlapPx / 2, height - overlapPx - 30);
+        }
+
+        // Registration marks ONLY on BOTTOM edge (will be covered by tile below)
+        if (tile.hasBottomOverlap) {
+            drawCrossHair(overlapPx + 30, height - overlapPx / 2);
+            drawCrossHair(width / 2, height - overlapPx / 2);
+            drawCrossHair(width - overlapPx - 30, height - overlapPx / 2);
+        }
+
+        // LEFT and TOP edges: NO MARKS - these stay visible!
+    }
+
+    /**
+     * Draw numbered alignment points ONLY on covered edges (right/bottom)
+     * These will be hidden when the next tile is placed on top
+     */
+    drawAlignmentPoints(ctx, width, height, overlapPx, tile) {
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Right edge alignment points (will be covered - safe to mark)
+        if (tile.hasRightOverlap) {
+            let pointNum = 1;
+            [overlapPx + 60, height / 2, height - overlapPx - 60].forEach(y => {
+                const x = width - overlapPx / 2;
+                
+                ctx.fillStyle = 'rgba(65, 105, 225, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'white';
+                ctx.fillText(pointNum.toString(), x, y);
+                pointNum++;
+            });
+        }
+
+        // Bottom edge alignment points (will be covered - safe to mark)
+        if (tile.hasBottomOverlap) {
+            let pointNum = 1;
+            [overlapPx + 60, width / 2, width - overlapPx - 60].forEach(x => {
+                const y = height - overlapPx / 2;
+                
+                ctx.fillStyle = 'rgba(65, 105, 225, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = 'white';
+                ctx.fillText(pointNum.toString(), x, y);
+                pointNum++;
+            });
+        }
+
+        // LEFT and TOP edges: NO MARKS - these stay visible in final assembly!
+    }
+
+    /**
+     * Draw corner crop marks
+     */
+    drawCornerMarks(ctx, width, height) {
+        const markLength = 20;
+
         ctx.setLineDash([]);
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.lineWidth = 1;
@@ -182,8 +345,6 @@ class GridSplitter {
         ctx.lineTo(width, height);
         ctx.lineTo(width, height - markLength);
         ctx.stroke();
-
-        ctx.restore();
     }
 
     /**

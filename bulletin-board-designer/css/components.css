@@ -436,6 +436,55 @@
     color: var(--color-primary-400);
 }
 
+/* Color Picker */
+.color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.color-input {
+    width: 44px;
+    height: 36px;
+    padding: 0;
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: transparent;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+.color-input::-webkit-color-swatch {
+    border-radius: var(--radius-sm);
+    border: none;
+}
+
+.color-presets {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.color-btn {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+}
+
+.color-btn.active {
+    border-color: var(--color-primary-400);
+    box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
 /* Select */
 .control-select {
     width: 100%;

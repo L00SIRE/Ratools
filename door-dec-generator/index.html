@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Door Dec Generator | RA Tools</title>
+    <meta name="description" content="Create personalized multi-layer door decorations for your residents in bulk.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../../css/landing.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <a href="../../index.html" class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-title">Door Dec Generator</span>
+                        <span class="logo-subtitle">RA Tools</span>
+                    </div>
+                </a>
+                <nav class="header-nav">
+                    <a href="../../index.html" class="nav-link">Back to Tools</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="editor-layout">
+                
+                <!-- Preview Panel -->
+                <div class="preview-panel">
+                    <div class="panel-header">
+                        <h3>Live Preview</h3>
+                        <div class="preview-controls">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="drawModeToggle">
+                                <span class="toggle-label">✨ Magic Pencil</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="preview-container" id="previewContainer">
+                        <canvas id="previewCanvas"></canvas>
+                        <canvas id="drawCanvas" class="overlay-canvas"></canvas>
+                    </div>
+                    <div class="preview-info">
+                        <p id="hintText">💡 Tip: Layer different colored paper for a professional look!</p>
+                    </div>
+                </div>
+
+                <!-- Controls Panel -->
+                <div class="controls-panel">
+                    <!-- Layer 1: Base -->
+                    <div class="control-section">
+                        <h4>Layer 1: Base Shape</h4>
+                        <div class="control-group">
+                            <label>Shape <span class="text-xs text-muted">(or draw on canvas!)</span></label>
+                            <div class="shape-selector" id="baseShapeSelector">
+                                <button class="shape-btn active" data-shape="circle" title="Circle">●</button>
+                                <button class="shape-btn" data-shape="square" title="Square">■</button>
+                                <button class="shape-btn" data-shape="hexagon" title="Hexagon">⬡</button>
+                                <button class="shape-btn" data-shape="star" title="Star">★</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label>Size & Color</label>
+                            <div class="row">
+                                <input type="number" id="baseSize" value="10" min="5" max="20" class="input-sm"> <span class="unit">cm</span>
+                                <input type="color" id="baseColor" value="#6366f1" class="color-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: Detail (Optional) -->
+                    <div class="control-section">
+                        <h4>Layer 2: Detail (Optional)</h4>
+                        <div class="control-group">
+                            <label>Type</label>
+                            <select id="layer2Type" class="control-select">
+                                <option value="none">None</option>
+                                <option value="shape">Smaller Shape</option>
+                                <option value="image">Custom Image</option>
+                            </select>
+                        </div>
+                        <div class="control-group hidden" id="layer2ShapeControls">
+                             <div class="shape-selector" id="detailShapeSelector">
+                                <button class="shape-btn active" data-shape="circle">●</button>
+                                <button class="shape-btn" data-shape="square">■</button>
+                            </div>
+                            <input type="color" id="detailColor" value="#ffffff" class="color-input mt-2">
+                        </div>
+                         <div class="control-group hidden" id="layer2ImageControls">
+                            <button class="upload-btn" id="uploadImageBtn">Upload Image</button>
+                            <input type="file" id="imageInput" hidden accept="image/*">
+                        </div>
+                    </div>
+
+                    <!-- Layer 3: Text -->
+                    <div class="control-section">
+                        <h4>Layer 3: Name Tag</h4>
+                         <div class="control-group">
+                            <label>Font</label>
+                             <select id="fontSelect" class="control-select">
+                                <option value="Inter">Modern (Inter)</option>
+                                <option value="Serif">Classic (Serif)</option>
+                                <option value="Cursive">Handwritten</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Color</label>
+                            <div class="row">
+                                <input type="color" id="textColor" value="#0f172a" class="color-input">
+                                <label class="checkbox-label ml-2">
+                                    <input type="checkbox" id="textBgCheck" checked> White Background
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Input Section -->
+            <section class="bulk-section">
+                <h3>Resident Names</h3>
+                <p>Paste your list of names below (one name per line)</p>
+                <textarea id="nameInput" placeholder="John Doe&#10;Jane Smith&#10;Alex Johnson..." rows="6"></textarea>
+                <div class="count-badge" id="nameCount">0 names</div>
+            </section>
+
+            <!-- Export Section -->
+            <section class="export-section">
+                 <h3>Export Options</h3>
+                 <div class="export-options">
+                     <label class="option-card">
+                         <input type="radio" name="exportMode" value="combined" checked>
+                         <div class="option-content">
+                             <span class="option-title">Standard PDF</span>
+                             <span class="option-desc">Complete door decs on each page. Best for color printers.</span>
+                         </div>
+                     </label>
+                     <label class="option-card">
+                         <input type="radio" name="exportMode" value="separated">
+                         <div class="option-content">
+                             <span class="option-title">Separate Layers (Smart)</span>
+                             <span class="option-desc">Base shapes on one page, names on another.</span>
+                             <label class="checkbox-label text-xs mt-2 text-muted">
+                                 <input type="checkbox" id="fillSeparated" checked> Fill shapes with color
+                             </label>
+                         </div>
+                     </label>
+                 </div>
+                 <button class="generate-btn" id="generateBtn">
+                     Generate PDF
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                     </svg>
+                 </button>
+            </section>
+
+        </main>
+        
+        <script src="js/designer.js"></script>
+        <script src="js/exporter.js"></script>
+        <script src="js/smartPencil.js"></script>
+        <script src="js/app.js"></script>
+    </div>
+</body>
+</html>
